@@ -1,0 +1,157 @@
+#file_path = '/content/sample_data/TopicsGraph_connected.dot'
+#edit your file path as needed
+G = nx.nx_agraph.read_dot(file_path)
+G = nx.relabel_nodes(G, str)
+T = nx.bfs_tree(G, '1', depth_limit=3)
+print(T.number_of_nodes(), T.number_of_edges())
+
+
+H = nx.induced_subgraph(G, T.nodes()).copy()
+
+# Check planarity
+is_planar, _ = nx.check_planarity(G)
+
+def highest_crossings(graph, layout):
+      crossings = {}
+      line_list = []
+      graph_edges = list(graph.edges())
+      for (u1, v1) in graph_edges:
+        line = LineString([layout[u1], layout[v1]])
+        line_list.append(line)
+      #k = nchecks
+      for i, (u1, v1) in enumerate(graph_edges):
+          #print(u1, v1)
+          line1 = line_list[i]  # Create line for edge (u1, v1)
+          crossings[(u1, v1)] = sum(
+              line1.intersects(line_list[j])
+              for j, (u2, v2) in enumerate(graph_edges) if (u1, v1) != (u2, v2) and (v1, u1) != (u2, v2)
+          )
+          '''
+          if crossings[(u1, v1)]>0:
+            k -= 1
+            if k==0:
+              break
+              '''
+      #return max(crossings, key=crossings.get)  # Return edge with the most crossings
+      print(graph.number_of_edges())
+      print(len(crossings))
+      sorted_crossings = sorted(crossings.items(), key=lambda x: x[1], reverse=True)
+      return sorted_crossings   # Return sorted edges by the # of crossings in reverse order
+
+'''
+while not is_planar:
+    print("The graph is non-planar. Attempting to remove edges to make it planar...")
+
+
+
+    layout = nx.spring_layout(G)
+
+    # Find and remove the edge with the highest crossings
+    edge_to_remove = highest_crossings(G, layout)
+    G.remove_edge(*edge_to_remove)
+    print(f"Removed edge {edge_to_remove}")
+
+    is_planar, _ = nx.check_planarity(G)
+    if is_planar:
+        print("The graph is now planar.")
+    else:
+        print("The graph is still non-planar after removing one edge.")
+        '''
+
+# sort and remove all edges at once instead of one at a time then recalculate crossing each iteration
+## does it remain a dynamic graph bc its state does not adjust or change until at the end of the removal loop?
+
+
+removed_edges = []
+
+if not is_planar:
+    print("The graph is non-planar. Attempting to remove edges to make it planar...")
+
+    layout = nx.spring_layout(H) # spring layout application
+    sorted_edges = highest_crossings(H, layout)
+
+    for (edge, _) in sorted_edges:
+        H.remove_edge(*edge) # store the edges removed????
+        removed_edges.append(edge) # stored here!!
+        print(f"Removed edge {edge}")
+
+        is_planar, _ = nx.check_planarity(H)
+        if is_planar:
+            print("The graph is now planar")
+            break
+    else:
+        print("Could not make the graph planar after removing edges")
+else:
+    print("The graph is already planar")
+
+    # find a way to put edges back in
+
+    #have the code running
+    #run this alg, take this graph
+    # incorporate the implementation of the alg from the paper
+    # could also try to add some edges back
+
+    #take the generated graph and output it
+
+    # idea to adding the edges back: pick a minimum, find one edge out of the removed edges
+    # we know graphs is disconnected, we know where the nodes are from the layout, if we put edge back in, does it introduce crossings?
+    #connect this compononent back to a
+    '''
+    Keep track of all the removed edges in the previous step.
+    Exclude the final edge that made the graph planar, as adding it back will break the planarity.
+
+    # Instead of adding back edges in the order they were removed, try adding edges that connect
+    nodes with the lowest degree first. or, shortest distance first? take the list of removed edges and
+    sort them in ascending order of distance
+
+    Iterate over the list of removed edges.
+    For each edge, attempt to add it back to the graph and check if it is still planar.
+    If adding the edge makes the graph non-planar, remove it again.
+    Keep as many edges as possible while ensuring that the graph remains planar.
+
+
+    Add edges in a way that minimizes crossings. A potential heuristics is to start with edges connecting
+    nodes of lower degree to avoid creating crossings due to high-degree nodes.
+
+    After adding an edge, use nx.check_planarity() to ensure that the graph remains planar.
+
+    Use nx.connected_components(H) to check if the graph is disconnected.
+    If so, prioritize adding edges between disconnected components to make
+    the graph as connected as possible.
+
+
+    '''
+    # Sort edges by shortest distance first
+removed_edges_sorted_by_distance = sorted(
+    removed_edges,
+    key=lambda edge: (
+        ((layout[edge[0]][0] - layout[edge[1]][0]) ** 2 + (layout[edge[0]][1] - layout[edge[1]][1]) ** 2) ** 0.5
+    )
+)
+
+# Sort edges by lowest degree (after sorting by distance to prioritize disconnected components)
+removed_edges_sorted = sorted(
+    removed_edges_sorted_by_distance,
+    key=lambda edge: (H.degree(edge[0]) + H.degree(edge[1]))
+)
+
+# Now use `removed_edges_sorted` to attempt adding edges back.
+for edge in removed_edges_sorted:
+    u, v = edge
+
+    H.add_edge(u, v)
+
+    is_planar, _ = nx.check_planarity(H)
+
+    if not is_planar:
+        H.remove_edge(u, v)
+        print(f"Adding edge {edge} made the graph non-planar. Removed it again.")
+    else:
+        print(f"Successfully added edge {edge} while maintaining planarity.")
+
+
+
+plt.figure()
+pos = nx.spring_layout(H) #try algorithm from the paper
+nx.draw(H, pos=pos, with_labels=True, node_color='lightblue', edge_color='gray')
+plt.show()
