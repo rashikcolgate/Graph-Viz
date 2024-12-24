@@ -1,3 +1,2 @@
 # Graph-Viz
-Takes a non-planar graph, removes edges until it's planar, and adds edges back in for more information. 
-Run, using the planarity file, any acyclic graph using the highest crossings implementation to compute a planar graph out of the dataset
+Given a non-planar graph, the program removes edges to make it planar, then adds edges back to enhance the information content. Using the Planarity file, it processes any acyclic graph by applying the highest crossings implementation to compute a planar graph from the dataset.
